@@ -165,6 +165,10 @@ QT_DIR:PATH=/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6
 - built using `make`
 
 
+### 2026-02-03 - Build v1.17.0 surprisingly quite easy after pulling changes from git and re-running CMake GUI (Generate > Open Project)
+## Opened in XCode and built right away.
+
+
 
 ### NOTE 2025-09-10 - Had to substantially modify CMakeLists.txt by commenting out the missing `LSLGenerateCPackConfig` and `installLSLApp` commands
 
