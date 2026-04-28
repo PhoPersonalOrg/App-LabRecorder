@@ -19,6 +19,7 @@ signals:
 	void start();
 	void stop();
 	void filename(QString s);
+	void recordingPathQuery(QTcpSocket *sock);
 	void select_all();
 	void select_none();
 

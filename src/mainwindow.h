@@ -15,6 +15,7 @@ namespace Ui {
 class MainWindow;
 }
 
+class QTcpSocket;
 class recording;
 class RemoteControlSocket;
 class IconFlasher;
@@ -59,6 +60,7 @@ private slots:
 	void rcsUpdateFilename(QString s);
 	void rcsStartRecording();
 	void rcsStopRecording();
+	void rcsSendRecordingPath(QTcpSocket *sock);
 	void rcsportValueChangedInt(int value);
 	void toggleConsole(bool checked);
 
@@ -81,7 +83,8 @@ private:
 	QSet<QString> missingStreams;
 	std::map<std::string, int> syncOptionsByStreamName;
 
-	// QString recFilename;
+	QString activeRecordingPath;
+
 	QString legacyTemplate;
 	std::unique_ptr<Ui::MainWindow> ui; // window pointer
 

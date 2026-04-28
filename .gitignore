@@ -18,3 +18,6 @@ liblsl.deb
 install-qt.sh
 .DS_Store
 
+app.icns
+OptimizationProfiles/LabRecorder.profdata
+out.7z

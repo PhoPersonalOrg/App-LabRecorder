@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QHostInfo>
+#include <QtNetwork/QTcpSocket>
 #if QT_VERSION_MAJOR < 6
 #include <QRegExp>
 #else
@@ -497,6 +498,7 @@ void MainWindow::startRecording() {
 
 		currentRecording = std::make_unique<recording>(recFilename.toStdString(),
 			requestedAndAvailableStreams, watchfor, syncOptionsByStreamName, true);
+		activeRecordingPath = QFileInfo(recFilename).absoluteFilePath();
 		ui->stopButton->setEnabled(true);
 		ui->startButton->setEnabled(false);
 		startTime = (int)lsl::local_clock();
@@ -518,6 +520,7 @@ void MainWindow::stopRecording() {
 		try {
 			currentRecording = nullptr;
 		} catch (std::exception &e) { qWarning() << "exception on stop: " << e.what(); }
+		activeRecordingPath.clear();
 		ui->startButton->setEnabled(true);
 		ui->stopButton->setEnabled(false);
 		statusBar()->showMessage("Stopped");
@@ -724,6 +727,7 @@ void MainWindow::enableRcs(bool bEnable) {
 		connect(rcs.get(), &RemoteControlSocket::start, this, &MainWindow::rcsStartRecording);
 		connect(rcs.get(), &RemoteControlSocket::stop, this, &MainWindow::rcsStopRecording);
 		connect(rcs.get(), &RemoteControlSocket::filename, this, &MainWindow::rcsUpdateFilename);
+		connect(rcs.get(), &RemoteControlSocket::recordingPathQuery, this, &MainWindow::rcsSendRecordingPath);
 		connect(rcs.get(), &RemoteControlSocket::select_all, this, &MainWindow::selectAllStreams);
 		connect(rcs.get(), &RemoteControlSocket::select_none, this, &MainWindow::selectNoStreams);
 	}
@@ -750,6 +754,12 @@ void MainWindow::rcsStartRecording() {
 void MainWindow::rcsStopRecording() {
 	hideWarnings = true;
 	stopRecording();
+}
+
+void MainWindow::rcsSendRecordingPath(QTcpSocket *sock) {
+	if (!sock) return;
+	sock->write(activeRecordingPath.toUtf8());
+	sock->write("\nOK\n");
 }
 
 void MainWindow::rcsUpdateFilename(QString s) {
