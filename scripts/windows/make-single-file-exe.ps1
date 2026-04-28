@@ -59,7 +59,7 @@ New-Item -ItemType Directory -Path $staging | Out-Null
 
 # Copy all runtime artifacts next to the exe into staging
 Get-ChildItem -Path $OutDir -Force | ForEach-Object {
-    if($_.Name -ne 'singlefile_staging'){
+    if($_.Name -ne 'singlefile_staging' -and $_.Name -ne 'LabRecorder-single.exe'){
         $dest = Join-Path $staging $_.Name
         if($_.PSIsContainer){ Copy-Item -Recurse -Force $_.FullName $dest }
         else { Copy-Item -Force $_.FullName $dest }
@@ -80,18 +80,30 @@ GUIMode="2"
 $configFile = Join-Path $staging 'config.txt'
 Set-Content -Path $configFile -Value $configTxt -Encoding UTF8
 
-# Build an archive of the staging folder
-$archive = Join-Path $OutDir 'LabRecorder.7z'
-if(Test-Path $archive){ Remove-Item -Force $archive }
+# Build archive in %TEMP% to avoid locked OutDir\LabRecorder.7z from prior runs
+$archive = Join-Path ([System.IO.Path]::GetTempPath()) ("LabRecorder_" + [Guid]::NewGuid().ToString("N") + ".7z")
 Push-Location $staging
 & $sevenZip a -t7z -m0=LZMA2 -mx=5 -mmt=on $archive * | Out-Null
 Pop-Location
 
-# Concatenate SFX + config + archive into a self-extracting EXE
-if(Test-Path $OutputExe){ Remove-Item -Force $OutputExe }
-Get-Content -Path $sfxPath -Encoding Byte | Set-Content -Path $OutputExe -Encoding Byte
-Get-Content -Path $configFile -Encoding Byte | Add-Content -Path $OutputExe -Encoding Byte
-Get-Content -Path $archive -Encoding Byte | Add-Content -Path $OutputExe -Encoding Byte
+# Concatenate SFX + config + archive into a self-extracting EXE (build in %TEMP% then copy; avoids locked $OutputExe)
+$outTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("LabRecorder_sfx_" + [Guid]::NewGuid().ToString("N") + ".exe")
+Get-Content -Path $sfxPath -Encoding Byte | Set-Content -Path $outTmp -Encoding Byte
+Get-Content -Path $configFile -Encoding Byte | Add-Content -Path $outTmp -Encoding Byte
+Get-Content -Path $archive -Encoding Byte | Add-Content -Path $outTmp -Encoding Byte
+Remove-Item -Force $archive -ErrorAction SilentlyContinue
+$copied = $false
+for($i = 0; $i -lt 20; $i++){
+    try {
+        Copy-Item -LiteralPath $outTmp -Destination $OutputExe -Force -ErrorAction Stop
+        $copied = $true
+        break
+    } catch {
+        Start-Sleep -Milliseconds 350
+    }
+}
+Remove-Item -Force $outTmp -ErrorAction SilentlyContinue
+if(-not $copied){ throw "Could not write $OutputExe (file may be locked by another process)." }
 
 Write-Host "Created single-file executable: $OutputExe"
 

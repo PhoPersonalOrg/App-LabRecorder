@@ -31,6 +31,7 @@ cmake --build build -j --config Release --target install
 
 ```
 # Recommended: use CMake Presets (see CMakePresets.json)
+# Run these commands from the App-LabRecorder repository root (the directory that contains CMakePresets.json).
 
 # Windows (Visual Studio 2022)
 cmake --preset win-vs-release

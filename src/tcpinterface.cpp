@@ -23,7 +23,10 @@ void RemoteControlSocket::handleLine(QString s, QTcpSocket *sock) {
 		emit stop();
 	else if (s == "update")
 			emit refresh_streams();
-	else if (s.contains("filename")) {
+	else if (s == "recordingpath") {
+		emit recordingPathQuery(sock);
+		return;
+	} else if (s.contains("filename")) {
 		emit filename(s);
 	} else if (s.contains("select")) {
 		if (s.contains("all")) {
