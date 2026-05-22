@@ -199,7 +199,7 @@ if (WIN32)
 			COMMAND ${QT_WINDEPLOYQT_EXECUTABLE}
 			--no-translations --no-system-d3d-compiler
 			--qmldir ${CMAKE_CURRENT_SOURCE_DIR}
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>)
+			$<TARGET_FILE:${PROJECT_NAME}>)
 
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different

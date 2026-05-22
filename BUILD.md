@@ -31,6 +31,7 @@ cmake --build build -j --config Release --target install
 
 ```
 # Recommended: use CMake Presets (see CMakePresets.json)
+# Run these commands from the App-LabRecorder repository root (the directory that contains CMakePresets.json).
 
 # Windows (Visual Studio 2022)
 cmake --preset win-vs-release
@@ -163,6 +164,10 @@ QT_DIR:PATH=/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6
 ```
 - Used CMake GUI tool to configure and generate a Unix Makefile project
 - built using `make`
+
+
+### 2026-02-03 - Build v1.17.0 surprisingly quite easy after pulling changes from git and re-running CMake GUI (Generate > Open Project)
+## Opened in XCode and built right away.
 
 
 
