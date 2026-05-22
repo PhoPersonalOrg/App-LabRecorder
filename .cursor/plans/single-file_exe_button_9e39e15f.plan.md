@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: verify-button
     content: Reload workspace and confirm button runs build then packaging successfully
-    status: in_progress
+    status: completed
 isProject: false
 ---
 

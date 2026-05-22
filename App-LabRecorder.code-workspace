@@ -55,7 +55,8 @@
                     "cwd": "${workspaceFolder}",
                     "command": "cmake --build --preset win-release-single --target LabRecorder",
                     "extraCommands": [
-                        "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}/scripts/windows/make-single-file-exe.ps1\" -AppExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder.exe\" -OutDir \"${workspaceFolder}/out/build/win-vs-release-single/Release\" -OutputExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder-single.exe\" -SevenZipDir \"${sevenZipDir}\""
+                        "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}/scripts/windows/make-single-file-exe.ps1\" -AppExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder.exe\" -OutDir \"${workspaceFolder}/out/build/win-vs-release-single/Release\" -OutputExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder-single.exe\" -SevenZipDir \"${sevenZipDir}\"",
+                        "explorer \"${workspaceFolder}/out/build/win-vs-release-single/Release\""
                     ]
                 }
             ],
