@@ -121,11 +121,24 @@ if (BUILD_GUI)
 	endif()
 endif(BUILD_GUI)
 
+if(APPLE)
+add_executable(LabRecorderCLI MACOSX_BUNDLE
+	src/clirecorder.cpp
+	src/recording.h
+	src/recording.cpp
 add_executable(LabRecorderCLI
     src/clirecorder.cpp
     src/recording.h
     src/recording.cpp
 )
+else()
+add_executable(LabRecorderCLI
+	src/clirecorder.cpp
+	src/recording.h
+	src/recording.cpp
+)
+endif()
+
 
 target_link_libraries(LabRecorderCLI
 	PRIVATE
