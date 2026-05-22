@@ -11,8 +11,10 @@ class RemoteControlSocket : public QObject {
 	Q_OBJECT
 	QTcpServer server;
 	QList<QTcpSocket*> clients;
+	bool listening_ = false;
 public:
 	RemoteControlSocket(uint16_t port);
+	bool isListening() const { return listening_; }
 
 signals:
 	void refresh_streams();

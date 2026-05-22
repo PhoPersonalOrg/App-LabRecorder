@@ -1,8 +1,10 @@
 #include "tcpinterface.h"
 #include <QDebug>
 
-RemoteControlSocket::RemoteControlSocket(uint16_t port) : server() {
-	server.listen(QHostAddress::Any, port);
+RemoteControlSocket::RemoteControlSocket(uint16_t port) : server(), listening_(false) {
+	listening_ = server.listen(QHostAddress::Any, port);
+	if (!listening_)
+		qWarning() << "RCS failed to listen on port" << port;
 	connect(&server, &QTcpServer::newConnection, this, &RemoteControlSocket::addClient);
 }
 
