@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFileDialog>
+#include <QHash>
 #include <QMessageBox>
 #include <QSettings>
 #include <QStandardPaths>
@@ -26,6 +27,15 @@ using QRegExp = QRegularExpression;
 #include "IconFlasher.h"
 
 const QStringList bids_modalities_default = QStringList({"eeg", "ieeg", "meg", "beh"});
+
+// Custom data roles used to stash the full LSL stream identity on each
+// QListWidgetItem in the stream list. We can't rely on the visible text
+// alone because multiple streams can share the same "Name (Host)" listName
+// (different type or source_id), and findItems() by text would coalesce them.
+static const int kRoleStreamName     = Qt::UserRole + 0;
+static const int kRoleStreamType     = Qt::UserRole + 1;
+static const int kRoleStreamSourceId = Qt::UserRole + 2;
+static const int kRoleStreamHost     = Qt::UserRole + 3;
 
 MainWindow::MainWindow(QWidget *parent, const char *config_file)
 	: QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -166,6 +176,15 @@ void MainWindow::load_config(QString filename) {
 	try {
 		QSettings pt(QDir::cleanPath(filename), QSettings::Format::IniFormat);
 
+		// Reset all cumulative stream-related state before applying the new
+		// config. Without this reset, prior knownStreams/sync options leak
+		// across loads and `refreshStreams()` cannot reconcile them against
+		// the freshly-rebuilt `missingStreams`, which produces duplicate
+		// red+green entries in the UI list and (worse) duplicate inlets
+		// in the recording pipeline.
+		knownStreams.clear();
+		syncOptionsByStreamName.clear();
+
 		// ----------------------------
 		// required streams
 		// ----------------------------
@@ -261,9 +280,11 @@ void MainWindow::load_config(QString filename) {
 			ui->lineEdit_template->setText(QDir::toNativeSeparators(legacyTemplate));
 		}
 
-		// Append BIDS modalities to the default list.
+		// Populate the BIDS modality combo from the config (or built-in defaults).
+		// Clear first so repeated loads don't accumulate duplicate entries.
+		ui->input_modality->clear();
 		ui->input_modality->insertItems(
-			ui->input_modality->count(), pt.value("BidsModalities", bids_modalities_default).toStringList());
+			0, pt.value("BidsModalities", bids_modalities_default).toStringList());
 		ui->input_modality->setCurrentIndex(0);
 
 		buildFilename();
@@ -336,30 +357,62 @@ QString info_to_listName(const lsl::stream_info& info) {
 std::vector<lsl::stream_info> MainWindow::refreshStreams() {
 	const std::vector<lsl::stream_info> resolvedStreams = lsl::resolve_streams(1.0);
 
-	// For each item in resolvedStreams, ignore if already in knownStreams, otherwise add to knownStreams.
-	// if in missingStreams then also mark it as required (--> checked by default) and remove from missingStreams.
-	for (const auto& s : resolvedStreams) {
+	// 1. Capture the user's current checked-state from the GUI BEFORE we
+	//    rebuild the list. Each green item carries its full LSL identity
+	//    in custom data roles, so two items that share a "Name (Host)"
+	//    listName but differ in type or source_id can be tracked
+	//    independently. Red ("missing") items have no identity data and
+	//    are skipped here.
+	for (int i = 0; i < ui->streamList->count(); ++i) {
+		const QListWidgetItem *item = ui->streamList->item(i);
+		const QVariant nameVar = item->data(kRoleStreamName);
+		if (!nameVar.isValid()) continue;
+		const std::string n = nameVar.toString().toStdString();
+		const std::string t = item->data(kRoleStreamType).toString().toStdString();
+		const std::string sid = item->data(kRoleStreamSourceId).toString().toStdString();
+		const std::string h = item->data(kRoleStreamHost).toString().toStdString();
+		for (auto &k : knownStreams) {
+			if (k.name == n && k.type == t && k.id == sid && k.host == h) {
+				k.checked = (item->checkState() == Qt::Checked);
+				break;
+			}
+		}
+	}
+
+	// 2. Add any newly-resolved streams to knownStreams. Streams listed in
+	//    the cfg's RequiredStreams (matched by listName) default to checked.
+	for (const auto &s : resolvedStreams) {
 		bool known = false;
 		for (auto &k : knownStreams) {
 			known |= s.name() == k.name && s.type() == k.type && s.source_id() == k.id;
 		}
 		if (!known) {
-			bool found = missingStreams.contains(info_to_listName(s));
-			knownStreams << StreamItem(s.name(), s.type(), s.source_id(), s.hostname(), found);
-			if (found) { missingStreams.remove(info_to_listName(s)); }
+			const bool required = missingStreams.contains(info_to_listName(s));
+			knownStreams << StreamItem(s.name(), s.type(), s.source_id(), s.hostname(), required);
 		}
 	}
-	// For each item in knownStreams, update its checked status from GUI. (only works for streams found on a previous refresh)
-	// Because we search by name + host, entries aren't guaranteed to be unique, so checking one entry with matching name and host checks them all.
-	for (auto &k : knownStreams) {
-		QList<QListWidgetItem *> foundItems = ui->streamList->findItems(k.listName(), Qt::MatchCaseSensitive);
-		if (foundItems.count() > 0) {
-			bool checked = false;
-			for (auto &fi : foundItems) { checked |= fi->checkState() == Qt::Checked; }
-			k.checked = checked;
+
+	// 3. Idempotent reconciliation: any resolved stream whose listName is
+	//    in missingStreams is, by definition, no longer missing. Remove
+	//    that listName from missingStreams and force every matching
+	//    knownStreams entry to checked. This is what makes Load+refresh
+	//    safe to run repeatedly without producing duplicate red+green
+	//    entries (the "first block is red" bug) -- and, transitively,
+	//    duplicate inlets in the recording pipeline.
+	for (const auto &s : resolvedStreams) {
+		const QString ln = info_to_listName(s);
+		if (missingStreams.remove(ln)) {
+			for (auto &k : knownStreams) {
+				if (s.name() == k.name && s.type() == k.type && s.source_id() == k.id) {
+					k.checked = true;
+				}
+			}
 		}
 	}
-	// For each item in knownStreams; if it is not resolved then drop it. If it was checked then add back to missingStreams.
+
+	// 4. Drop knownStreams entries that aren't resolved anymore. If they
+	//    were checked, push the listName back into missingStreams so the
+	//    user still sees them as required-but-offline.
 	int k_ind = 0;
 	while (k_ind < knownStreams.count()) {
 		StreamItem k = knownStreams.at(k_ind);
@@ -377,25 +430,39 @@ std::vector<lsl::stream_info> MainWindow::refreshStreams() {
 			k_ind++;
 		}
 	}
-	// Clear the streamList
-	// Add missing items first.
-	// Then add knownStreams (only in list if resolved).
+
+	// 5. Re-render the list. Missing items first (red), then knownStreams
+	//    (green). When multiple known streams share a listName, append a
+	//    "#N" suffix so the user can tell duplicates apart at a glance.
 	const QBrush good_brush(QColor(0, 128, 0)), bad_brush(QColor(255, 0, 0));
 	ui->streamList->clear();
-	for (auto& m : std::as_const(missingStreams)) {
+	for (const auto &m : std::as_const(missingStreams)) {
 		auto *item = new QListWidgetItem(m, ui->streamList);
 		item->setCheckState(Qt::Checked);
 		item->setForeground(bad_brush);
 		ui->streamList->addItem(item);
 	}
-	for (auto& k : knownStreams) {
-		auto *item = new QListWidgetItem(k.listName(), ui->streamList);
+	QHash<QString, int> listNameTotal;
+	for (const auto &k : knownStreams) { listNameTotal[k.listName()] += 1; }
+	QHash<QString, int> listNameSeen;
+	for (auto &k : knownStreams) {
+		const QString ln = k.listName();
+		QString display = ln;
+		if (listNameTotal.value(ln) > 1) {
+			const int idx = ++listNameSeen[ln];
+			display = QStringLiteral("%1 #%2").arg(ln).arg(idx);
+		}
+		auto *item = new QListWidgetItem(display, ui->streamList);
 		item->setCheckState(k.checked ? Qt::Checked : Qt::Unchecked);
 		item->setForeground(good_brush);
+		item->setData(kRoleStreamName,     QString::fromStdString(k.name));
+		item->setData(kRoleStreamType,     QString::fromStdString(k.type));
+		item->setData(kRoleStreamSourceId, QString::fromStdString(k.id));
+		item->setData(kRoleStreamHost,     QString::fromStdString(k.host));
 		ui->streamList->addItem(item);
 	}
 
-	// return a std::vector of streams of checked and not missing streams.
+	// 6. Return the resolved streams whose knownStream is checked.
 	std::vector<lsl::stream_info> requestedAndAvailableStreams;
 	for (const auto &r : resolvedStreams) {
 		for (auto &k : knownStreams) {
@@ -473,8 +540,27 @@ void MainWindow::startRecording() {
 			return;
 		}
 		
+		// Build a set of "Name (Host)" listNames for streams that are
+		// already going to be recorded phase-locked. Any missingStreams
+		// entry matching one of these MUST be excluded from `watchfor`,
+		// otherwise the recording layer would resolve the same stream
+		// again and spawn a second (non-phase-locked) inlet, producing
+		// duplicate stream headers and parallel sample streams in the
+		// XDF file. This is defense-in-depth: refreshStreams() is now
+		// idempotent, but a single source of truth is not enough -- the
+		// watchfor list must independently guarantee no overlap.
+		QSet<QString> alreadyRecording;
+		for (const auto &r : requestedAndAvailableStreams) {
+			alreadyRecording.insert(
+				QString::fromStdString(r.name() + " (" + r.hostname() + ")"));
+		}
+
 		std::vector<std::string> watchfor;
 		for (const QString &missing : std::as_const(missingStreams)) {
+			if (alreadyRecording.contains(missing)) {
+				qInfo() << "Skipping watchfor entry already in recording set:" << missing;
+				continue;
+			}
             std::string query;
 			// Convert missing to query expected by lsl::resolve_stream
 			// name='BioSemi' and hostname=AASDFSDF
