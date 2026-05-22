@@ -40,6 +40,28 @@
         "python.languageServer": "None",
         "github-actions.workflows.pinned.workflows": [
             "App-LabRecorder/.github/workflows/cppcmake.yml"
-        ]
+        ],
+        "actionButtons": {
+            "customVars": {
+                "sevenZipDir": "C:/Users/pho/scoop/apps/7zip/current"
+            },
+            "commands": [
+                {
+                    "name": "Single-File EXE",
+                    "color": "#ed9600",
+                    "tooltip": "Build Release and package LabRecorder-single.exe",
+                    "useVsCodeApi": false,
+                    "terminalName": "LabRecorder Build",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake --build --preset win-release-single --target LabRecorder",
+                    "extraCommands": [
+                        "powershell -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}/scripts/windows/make-single-file-exe.ps1\" -AppExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder.exe\" -OutDir \"${workspaceFolder}/out/build/win-vs-release-single/Release\" -OutputExe \"${workspaceFolder}/out/build/win-vs-release-single/Release/LabRecorder-single.exe\" -SevenZipDir \"${sevenZipDir}\""
+                    ]
+                }
+            ],
+            "defaultColor": "white",
+            "reloadButton": "↻",
+            "loadNpmCommands": false
+        }
 	}
 }
