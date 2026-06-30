@@ -126,10 +126,6 @@ add_executable(LabRecorderCLI MACOSX_BUNDLE
 	src/clirecorder.cpp
 	src/recording.h
 	src/recording.cpp
-add_executable(LabRecorderCLI
-    src/clirecorder.cpp
-    src/recording.h
-    src/recording.cpp
 )
 else()
 add_executable(LabRecorderCLI
