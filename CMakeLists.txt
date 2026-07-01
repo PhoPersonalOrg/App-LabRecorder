@@ -70,8 +70,13 @@ if (BUILD_GUI)
 	set(CMAKE_AUTOMOC ON)  # The later version of this in LSLCMake is somehow not enough.
 	set(CMAKE_AUTORCC ON)
 	set(CMAKE_AUTOUIC ON)
-	find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-	find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network DBus)
+	find_package(Qt6 COMPONENTS Core Widgets Network DBus QUIET)
+	if(NOT Qt6_FOUND)
+		find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network DBus)
+		set(QT_VERSION_MAJOR 5)
+	else()
+		set(QT_VERSION_MAJOR 6)
+	endif()
 endif(BUILD_GUI)
 
 ## Threads
@@ -126,10 +131,6 @@ add_executable(LabRecorderCLI MACOSX_BUNDLE
 	src/clirecorder.cpp
 	src/recording.h
 	src/recording.cpp
-add_executable(LabRecorderCLI
-    src/clirecorder.cpp
-    src/recording.h
-    src/recording.cpp
 )
 else()
 add_executable(LabRecorderCLI
