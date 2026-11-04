@@ -48,10 +48,8 @@ cmake --build --preset win-release-single --target package-single-file-exe
 cmake --preset linux-gcc-release
 cmake --build --preset linux-release --target install
 
-# macOS (Xcode)
-cmake --preset macos-release
-cmake --build --preset macos-release --target install
-open 'out/build/macos-release/LabRecorder.xcodeproj' ## open in XCode
+# iOS (Xcode)
+open 'ios/LabRecorderiOS.xcworkspace' ## open in XCode
 
 
 # Notes
