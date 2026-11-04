@@ -1,0 +1,5 @@
+framework module lsl {
+  umbrella header "lsl_c.h"
+  export *
+  module * { export * }
+}
