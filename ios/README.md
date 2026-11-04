@@ -56,6 +56,30 @@ LabRecorderiOS/
 - No need to manually add files to project targets
 - Reduces project file conflicts in teams
 
+## Build & Run
+
+Open the workspace (not the xcodeproj alone):
+
+```bash
+open ios/LabRecorderiOS.xcworkspace
+```
+
+Or from the CLI / XcodeBuildMCP, use scheme `LabRecorderiOS` against an iOS 18+ simulator
+(e.g. iPhone 17 Pro). The package links the vendored `ios/Vendor/lsl.xcframework` (liblsl 1.17).
+
+LSL discovery needs local network / multicast. The app already sets
+`NSLocalNetworkUsageDescription` and the `com.apple.developer.networking.multicast` entitlement.
+On a physical device you must have Multicast Networking capability approved for the App ID.
+
+Quick smoke test with a host-side outlet (Homebrew liblsl):
+
+```bash
+# terminal 1 – send a test EEG stream
+c++ -std=c++17 send.cpp $(pkg-config --cflags --libs lsl) -o /tmp/send_eeg && /tmp/send_eeg
+
+# terminal 2 – run the iOS app, tap Update, select the stream, Start/Stop
+```
+
 ## Development Notes
 
 ### Code Organization

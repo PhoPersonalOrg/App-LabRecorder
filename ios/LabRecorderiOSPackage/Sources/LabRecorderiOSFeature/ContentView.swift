@@ -29,6 +29,7 @@ public struct ContentView: View {
                         Label("Update", systemImage: "arrow.clockwise")
                             .frame(maxWidth: .infinity)
                     }
+                    .accessibilityIdentifier("updateStreams")
                     .disabled(isRefreshing)
                 }
 
@@ -49,6 +50,7 @@ public struct ContentView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("startRecording")
                         .disabled(isRecording || streamItems.filter(\.isSelected).isEmpty)
 
                         Button(action: stopRecording) {
@@ -56,6 +58,7 @@ public struct ContentView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityIdentifier("stopRecording")
                         .disabled(!isRecording)
                     }
                 }
@@ -117,7 +120,7 @@ public struct ContentView: View {
         isRefreshing = true
         defer { isRefreshing = false }
         let resolver = LSLResolver()
-        let infos = await resolver.resolveStreams(waitTime: 1.0)
+        let infos = await resolver.resolveStreams(waitTime: 2.0)
         let newItems = infos.map { info in
             let sid = "\(info.name)|\(info.hostname)|\(info.sourceId)"
             let wasSelected = streamItems.first { $0.id == sid }?.isSelected ?? false
