@@ -17,6 +17,9 @@ add_library(${PROJECT_NAME} xdfwriter.cpp)
 add_executable(testxdfwriter test_xdf_writer.cpp)
 
 target_link_libraries(testxdfwriter PRIVATE ${PROJECT_NAME})
+
+add_executable(generate_robust_test_xdf generate_robust_test_xdf.cpp)
+target_link_libraries(generate_robust_test_xdf PRIVATE ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # Test for floating point format and endianness
