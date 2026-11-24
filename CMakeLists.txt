@@ -17,8 +17,10 @@ option(BUILD_GUI "Build the GUI, set to off for CLI only build" ON)
 option(LABRECORDER_SINGLE_FILE_EXE "Enable Windows single-file EXE packaging (optional)" OFF)
 set(SEVENZIP_DIR "" CACHE PATH "Path to 7-Zip installation directory containing 7z.exe and 7z.sfx")
 
+# Xcode refuses an empty identity for command-line tool targets; use ad-hoc (-).
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
-set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "")
+set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
+set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "YES")
 
 # Dependencies
 # list(APPEND CMAKE_MODULE_PATH "C:/Users/pho/repos/EmotivEpoc/LSL_REPOS/LSL/liblsl/build/install/lib/cmake/LSL")
@@ -57,11 +59,14 @@ if(ANDROID)
 else()
 	find_package(LSL REQUIRED
 		HINTS ${LSL_INSTALL_ROOT}
+		${LSL_DIR}
+		/opt/homebrew/lib/cmake/lsl
+		/opt/homebrew/opt/lsl/lib/cmake/lsl
 		"${CMAKE_CURRENT_LIST_DIR}/../../LSL/liblsl/build/"
 		"${CMAKE_CURRENT_LIST_DIR}/../../LSL/liblsl/build/install"
 		"${CMAKE_CURRENT_LIST_DIR}/../../LSL/liblsl/out/build/x64-Release"
 		"${CMAKE_CURRENT_LIST_DIR}/../../LSL/liblsl/out/install/x64-Release"
-		PATH_SUFFIXES share/LSL
+		PATH_SUFFIXES share/LSL lib/cmake/lsl lib/cmake/LSL
 	)
 endif()
 
@@ -126,19 +131,11 @@ if (BUILD_GUI)
 	endif()
 endif(BUILD_GUI)
 
-if(APPLE)
-add_executable(LabRecorderCLI MACOSX_BUNDLE
-	src/clirecorder.cpp
-	src/recording.h
-	src/recording.cpp
-)
-else()
 add_executable(LabRecorderCLI
 	src/clirecorder.cpp
 	src/recording.h
 	src/recording.cpp
 )
-endif()
 
 
 target_link_libraries(LabRecorderCLI
@@ -147,6 +144,16 @@ target_link_libraries(LabRecorderCLI
 	Threads::Threads
 	LSL::lsl
 )
+
+# Prefer the found LSL headers over other system installs (/usr/local vs Homebrew).
+# Qt's imported include paths can otherwise pull a mismatched lsl_cpp.h + lsl/*.h pair.
+get_target_property(_labrecorder_lsl_includes LSL::lsl INTERFACE_INCLUDE_DIRECTORIES)
+if(_labrecorder_lsl_includes)
+	target_include_directories(LabRecorderCLI BEFORE PRIVATE ${_labrecorder_lsl_includes})
+	if(BUILD_GUI)
+		target_include_directories(${PROJECT_NAME} BEFORE PRIVATE ${_labrecorder_lsl_includes})
+	endif()
+endif()
 
 # if((DEFINED LSL_INSTALL) AND (NOT LSL_INSTALL))
 # 	return()
@@ -231,38 +238,29 @@ if (WIN32)
 	endif(BUILD_GUI)
 endif()
 
+# Sidecar files: into Contents/Resources for macOS bundles (Contents/MacOS breaks codesign).
 if (BUILD_GUI)
+	if(APPLE)
+		set(_labrecorder_sidecar_dir "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Resources")
+	else()
+		set(_labrecorder_sidecar_dir "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+	endif()
 	add_custom_command(
 		TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//${PROJECT_NAME}.cfg
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>)
-	add_custom_command(
-		TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//LICENSE
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>)
-	add_custom_command(
-		TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//README.md
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>)
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${_labrecorder_sidecar_dir}"
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.cfg
+			${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+			${CMAKE_CURRENT_SOURCE_DIR}/README.md
+			"${_labrecorder_sidecar_dir}")
 else()
 	add_custom_command(
 		TARGET LabRecorderCLI POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//${PROJECT_NAME}.cfg
-		$<TARGET_FILE_DIR:LabRecorderCLI>)
-	add_custom_command(
-		TARGET LabRecorderCLI POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//LICENSE
-		$<TARGET_FILE_DIR:LabRecorderCLI>)
-	add_custom_command(
-		TARGET LabRecorderCLI POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		${CMAKE_CURRENT_SOURCE_DIR}//README.md
-		$<TARGET_FILE_DIR:LabRecorderCLI>)
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.cfg
+			${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+			${CMAKE_CURRENT_SOURCE_DIR}/README.md
+			$<TARGET_FILE_DIR:LabRecorderCLI>)
 endif(BUILD_GUI)
 
 if(Qt6_FOUND AND BUILD_GUI)
@@ -303,22 +301,27 @@ if(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS})
     )
     
     if (BREW_LIB EQUAL 0 AND EXISTS "${BREW_PREFIX}")
+        # Matches BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR} above.
+        set(_labrecorder_bundle "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME}.app")
         install(CODE
             "
                 include(BundleUtilities)
-                fixup_bundle(\"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app\" \"\" \"${BREW_PREFIX}/lib\")
-                
-                # Fix Qt plugin references specifically for Apple Silicon
+                fixup_bundle(\"${_labrecorder_bundle}\" \"\" \"${BREW_PREFIX}/lib\")
+
+                # Fix Qt plugin references specifically for Apple Silicon (after macdeployqt)
                 if(\"${ARCH}\" STREQUAL \"arm64\")
-                    execute_process(COMMAND install_name_tool -change @rpath/QtGui.framework/Versions/A/QtGui @executable_path/../Frameworks/QtGui
-                        \"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app/Contents/PlugIns/platforms/libqcocoa.dylib\")
+                    set(_qcocoa \"${_labrecorder_bundle}/Contents/PlugIns/platforms/libqcocoa.dylib\")
+                    if(EXISTS \"\${_qcocoa}\")
+                        execute_process(COMMAND install_name_tool -change @rpath/QtGui.framework/Versions/A/QtGui @executable_path/../Frameworks/QtGui \"\${_qcocoa}\")
+                    endif()
                 endif()
-                
-                # Re-sign with the same approach the project already uses
-				execute_process(COMMAND codesign --remove-signature \"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app\")
-				execute_process(COMMAND find \"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app/Contents/Frameworks\" -type f -exec codesign --force --sign - {} \\; 2>/dev/null || true)
-				execute_process(COMMAND find \"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app/Contents/PlugIns\" -type f -exec codesign --force --sign - {} \\; 2>/dev/null || true)
-				execute_process(COMMAND codesign --force --deep --sign - \"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/${PROJECT_NAME}.app\")            "
+
+                # Re-sign with ad-hoc identity (fixup_bundle invalidates signatures)
+				execute_process(COMMAND codesign --remove-signature \"${_labrecorder_bundle}\")
+				execute_process(COMMAND /bin/sh -c \"find '${_labrecorder_bundle}/Contents/Frameworks' -type f -exec codesign --force --sign - {} \\\\; 2>/dev/null || true\")
+				execute_process(COMMAND /bin/sh -c \"find '${_labrecorder_bundle}/Contents/PlugIns' -type f -exec codesign --force --sign - {} \\\\; 2>/dev/null || true\")
+				execute_process(COMMAND codesign --force --deep --sign - \"${_labrecorder_bundle}\")
+            "
         )
     endif()
 endif(APPLE AND NOT DEFINED ENV{GITHUB_ACTIONS})

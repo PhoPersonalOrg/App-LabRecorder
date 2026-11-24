@@ -762,6 +762,10 @@ QString MainWindow::find_config_file(const char *filename) {
 			 << QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation)
 			 << QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)
 			 << exeInfo.path();
+#ifdef Q_OS_MAC
+	// macOS app bundles keep sidecar files in Contents/Resources (not MacOS/).
+	cfgpaths << QDir(exeInfo.path()).absoluteFilePath(QStringLiteral("../Resources"));
+#endif
 	for (const auto &path : std::as_const(cfgpaths)) {
 		QString cfgfilepath = path + QDir::separator() + defaultCfgFilename;
 		qInfo() << cfgfilepath;

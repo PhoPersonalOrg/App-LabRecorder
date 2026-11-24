@@ -48,20 +48,19 @@ cmake --build --preset win-release-single --target package-single-file-exe
 cmake --preset linux-gcc-release
 cmake --build --preset linux-release --target install
 
-# macOS (Xcode)
+# macOS (Apple Silicon) — see "macOS (Apple Silicon)" section below
 cmake --preset macos-release
 cmake --build --preset macos-release --target install
-open 'out/build/macos-release/LabRecorder.xcodeproj' ## open in XCode
 
 
 # Notes
-# - Ensure Qt and liblsl are discoverable (set Qt6_DIR/Qt5_DIR and LSL_INSTALL_ROOT as needed)
-# - On Windows, the GUI build runs windeployqt automatically post-build; on macOS, use macdeployqt via install rules; on Linux, install rules provide a .desktop file and icon
+# - Ensure Qt and liblsl are discoverable (set Qt6_DIR/Qt5_DIR and LSL_DIR / LSL_INSTALL_ROOT as needed)
+# - On Windows, the GUI build runs windeployqt automatically post-build; on macOS, run macdeployqt after install (see macOS section); on Linux, install rules provide a .desktop file and icon
 # - For single-file EXE, antivirus tools may flag self-extractors; consider code signing and publishing checksums
 ```
 
 
-#### Manual/Old Build steps
+#### Manual/Old Build steps (Windows)
 ```
 # Qt5
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DLSL_INSTALL_ROOT="C:/Users/pho/repos/EmotivEpoc/LSL_REPOS/LSL/liblsl/out/install/x64-Debug" -DQT_DIR="L:\Qt\5.15.2\msvc2019_64\lib\cmake\Qt5" -DQt5_DIR="L:\Qt\5.15.2\msvc2019_64\lib\cmake\Qt5" -DCMAKE_INSTALL_PREFIX="build/install"
@@ -80,95 +79,124 @@ cmake --build build -j --config Debug
 ```
 
 
-#TODO 2025-09-11 16:18: - [ ] macOS - rMBP 2023 16
+## macOS (Apple Silicon)
 
-```
-/Users/pho/libs/labstreaminglayer/build/LSL/liblsl
-Commandline options:
--DLSLAPPS_XDFBrowser:BOOL="0" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DQt6_DIR:PATH="/usr/local/lib/cmake/Qt6" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" -DMACDEPLOYQT_EXECUTABLE:FILEPATH="/usr/local/bin/macdeployqt" -DCPACK_GENERATOR:STRING="TBZ2" -DCMAKE_BUILD_TYPE:STRING="" 
+Tested on arm64 with Homebrew Qt6 + Homebrew `lsl`, Xcode generator, deployment target 12.4.
 
-cmake -S . -B build -G "Unix Makefiles" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DLSL_WINVER:STRING="0x0601" -DLSL_BUNDLED_BOOST:BOOL="1" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" 
-make
+### Prerequisites
 
-### XCode:
-cmake -S . -B build -G "Xcode" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DLSL_WINVER:STRING="0x0601" -DLSL_BUNDLED_BOOST:BOOL="1" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" 
-# build in Xcode
-
-Cache file:
-LSLAPPS_XDFBrowser:BOOL=0
-LSL_DIR:PATH=/Users/pho/libs/labstreaminglayer/build/LSL/liblsl
-Qt6_DIR:PATH=/usr/local/lib/cmake/Qt6
-Boost_INCLUDE_DIR:PATH=/Users/pho/libs/boost_1_84_0
-MACDEPLOYQT_EXECUTABLE:FILEPATH=/usr/local/bin/macdeployqt
-CPACK_GENERATOR:STRING=TBZ2
-CMAKE_BUILD_TYPE:STRING=
-
-
-cmake -S . -B build -G "Unix Makefiles" -DLSLAPPS_XDFBrowser:BOOL="0" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DQt6_DIR:PATH="/usr/local/lib/cmake/Qt6" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" -DMACDEPLOYQT_EXECUTABLE:FILEPATH="/usr/local/bin/macdeployqt" -DCPACK_GENERATOR:STRING="TBZ2" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_INSTALL_PREFIX="build/install"
-cd build
-make
-
-cd build
-rm -rf *
-cd ../
-cmake -S . -B build -G "Xcode" -DLSLAPPS_XDFBrowser:BOOL="0" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DQt6_DIR:PATH="/usr/local/lib/cmake/Qt6" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" -DMACDEPLOYQT_EXECUTABLE:FILEPATH="/usr/local/bin/macdeployqt" -DCPACK_GENERATOR:STRING="TBZ2" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_INSTALL_PREFIX="build/install"
-
-cmake -S . -B build -G "Xcode" -DLSL_DIR:PATH="/Users/pho/libs/labstreaminglayer/build/LSL/liblsl" -DQt6_DIR:PATH="/usr/local/lib/cmake/Qt6" -DBoost_INCLUDE_DIR:PATH="/Users/pho/libs/boost_1_84_0" -DMACDEPLOYQT_EXECUTABLE:FILEPATH="/usr/local/bin/macdeployqt" -DCPACK_GENERATOR:STRING="TBZ2" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_INSTALL_PREFIX="build/install"-DCMAKE_OSX_SYSROOT:STRING="" -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING="" -DCMAKE_CONFIGURATION_TYPES:STRING="Debug;Release;MinSizeRel;RelWithDebInfo" -DCMAKE_INSTALL_PREFIX:PATH="/usr/local" -DLSL_WINVER:STRING="0x0601" -DLABRECORDER_XDFZ:BOOL="0" -DLSL_BUNDLED_BOOST:BOOL="0" -DCMAKE_OSX_ARCHITECTURES:STRING=""
-
-
- -DBoost_IOSTREAMS_LIBRARY_RELEASE:STRING="/usr/local/lib/libboost_iostreams.dylib" -DBoost_INCLUDE_DIR:PATH="/usr/local/include" 
-
-
-
-## removed args:  -A x64
-
+```bash
+# Xcode (full app, not just CLT) + CMake
+xcode-select -p
+brew install cmake qt lsl
 ```
 
+Confirm arm64 packages (do **not** mix `/usr/local` Intel Qt/LSL into an arm64 build):
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-### App-LabRecorder
-TIMEN
-Ended up downloading the latest CMake from the website, and then using the GUI to build an XCode project.
-```
--DCMAKE_OSX_DEPLOYMENT_TARGET:STRING="" -DCMAKE_OSX_ARCHITECTURES:STRING="" 
-12.4
-
-cmake --build . --config Release --target install
-
+```bash
+file "$(brew --prefix qt)/lib/QtCore.framework/QtCore"   # expect arm64
+file "$(brew --prefix lsl)/lib/liblsl.dylib"              # expect arm64
+ls "$(brew --prefix)/lib/cmake/lsl/LSLConfig.cmake"
+ls "$(brew --prefix qt)/lib/cmake/Qt6/Qt6Config.cmake"
 ```
 
-##### rMBP-PinkDot
-Install Qt6 directly from the Qt Online Installer application, installed to `~/Qt`
+The `macos-release` preset in `CMakePresets.json` points at:
+
+| Variable | Default |
+|---|---|
+| `LSL_DIR` | `/opt/homebrew/lib/cmake/lsl` |
+| `Qt6_DIR` | `/opt/homebrew/opt/qt/lib/cmake/Qt6` |
+| `MACDEPLOYQT_EXECUTABLE` | `/opt/homebrew/opt/qt/bin/macdeployqt` |
+
+If your Homebrew prefix differs, override those cache variables when configuring.
+
+### Configure, build, install
+
+From the App-LabRecorder repo root:
+
+```bash
+cmake --preset macos-release
+cmake --build --preset macos-release --config Release --target LabRecorder LabRecorderCLI
+cmake --build --preset macos-release --config Release --target install
 ```
 
-Commandline options:
--DQt6_DIR:PATH="/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6" -DQT_DIR:PATH="/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6" 
+Outputs:
 
+| Artifact | Location |
+|---|---|
+| Build tree (Xcode) | `out/build/macos-release/LabRecorder.xcodeproj` |
+| GUI app (build) | `out/build/macos-release/Release/LabRecorder.app` |
+| CLI (build) | `out/build/macos-release/Release/LabRecorderCLI` |
+| Installed GUI | `out/install/macos-release/bin/LabRecorder.app` |
+| Installed CLI | `out/install/macos-release/bin/LabRecorderCLI` |
 
-Cache file:
-Qt6_DIR:PATH=/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6
-QT_DIR:PATH=/Users/pho/Qt/6.9.2/macos/lib/cmake/Qt6
+Open the generated project in Xcode if you prefer the IDE:
 
+```bash
+open out/build/macos-release/LabRecorder.xcodeproj
 ```
-- Used CMake GUI tool to configure and generate a Unix Makefile project
-- built using `make`
 
+### Bundle Qt plugins (required for GUI)
 
-### 2026-02-03 - Build v1.17.0 surprisingly quite easy after pulling changes from git and re-running CMake GUI (Generate > Open Project)
-## Opened in XCode and built right away.
+`cmake --install` / the `install` target runs `fixup_bundle` for Homebrew dylibs, but does **not** copy Qt platform plugins. After install, run Homebrew’s `macdeployqt` on the installed app:
 
+```bash
+"$(brew --prefix qt)/bin/macdeployqt" \
+  out/install/macos-release/bin/LabRecorder.app \
+  -verbose=1
+
+# optional: re-sign ad-hoc after deploy
+codesign --force --deep --sign - out/install/macos-release/bin/LabRecorder.app
+```
+
+Then launch:
+
+```bash
+open out/install/macos-release/bin/LabRecorder.app
+# or CLI:
+./out/install/macos-release/bin/LabRecorderCLI out.xdf 'type="EEG"'
+```
+
+### Clean reconfigure
+
+If you change `LSL_DIR` / `Qt6_DIR` (or previously configured against `/usr/local` Intel packages), wipe the build tree first:
+
+```bash
+rm -rf out/build/macos-release
+cmake --preset macos-release
+```
+
+### Common failures
+
+- **`char*` vs `int8_t*` in `lsl_cpp.h` / `lsl/outlet.h`** — mixed LSL installs (`/usr/local` vs Homebrew). Use a single arm64 LSL (`LSL_DIR=/opt/homebrew/lib/cmake/lsl`) and reconfigure clean.
+- **Missing `liblsl.*.dylib` at link** — `LSL_DIR` points at a build tree that never built Release, or at an x86_64 library while targeting arm64. Prefer Homebrew `lsl`.
+- **Qt symbols missing for arm64** — `Qt6_DIR` points at Intel Qt under `/usr/local`. Point at `$(brew --prefix qt)/lib/cmake/Qt6`.
+- **Codesign fails on `Contents/MacOS/*.cfg`** — sidecar files belong in `Contents/Resources` (current CMake does this). Delete stale copies under `Contents/MacOS/` and rebuild.
+- **App launches but no UI / “could not find platform plugin”** — run `macdeployqt` as above.
+
+### Manual configure (without presets)
+
+```bash
+cmake -S . -B out/build/macos-release -G Xcode \
+  -DCMAKE_INSTALL_PREFIX="$PWD/out/install/macos-release" \
+  -DLSL_DIR="$(brew --prefix)/lib/cmake/lsl" \
+  -DQt6_DIR="$(brew --prefix qt)/lib/cmake/Qt6" \
+  -DMACDEPLOYQT_EXECUTABLE="$(brew --prefix qt)/bin/macdeployqt" \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=12.4 \
+  -DLABRECORDER_XDFZ=OFF
+
+cmake --build out/build/macos-release --config Release --target install
+```
+
+CLI-only (no Qt):
+
+```bash
+cmake -S . -B out/build/macos-cli -G Xcode \
+  -DBUILD_GUI=OFF \
+  -DLSL_DIR="$(brew --prefix)/lib/cmake/lsl" \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=12.4
+cmake --build out/build/macos-cli --config Release --target LabRecorderCLI
+```
 
 
 ### NOTE 2025-09-10 - Had to substantially modify CMakeLists.txt by commenting out the missing `LSLGenerateCPackConfig` and `installLSLApp` commands
@@ -269,16 +297,5 @@ If any significant changes are made to the project (such as changing Qt or Visua
 
 ## macOS
 
-    * Use [homebrew](https://brew.sh/)
-        * `brew install cmake qt boost`
-
-1. Open a Command Prompt / Terminal (Windows: MSVC Command Prompt) and change into this directory.
-1. Make a build subdirectory: `mkdir build && cd build`
-1. Call cmake
-    * `cmake ..`
-    * If your liblsl binaries are not in `../../LSL/liblsl/build/install`, add the path (`cmake -DLSL_INSTALL_ROOT=/path/to/liblsl/binaries ..`)
-    * Optional: Use a [generator](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#visual-studio-generators)
-1. You may need to specify additional cmake options.
- . Build everything and copy the files to the `install` folder:
-    * `cmake --build . --target install`
+See **[macOS (Apple Silicon)](#macos-apple-silicon)** above for the current Homebrew + CMake preset workflow.
 
