@@ -5,7 +5,6 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       xcode: latest
-      cocoapods: do-not-install
       vars:
         BUNDLE_ID: com.PhoHale.labrecorderios
         XCODE_WORKSPACE: ios/LabRecorderiOS.xcworkspace
@@ -46,7 +45,6 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.PhoHale.labrecorderios
       xcode: latest
-      cocoapods: do-not-install
       vars:
         BUNDLE_ID: com.PhoHale.labrecorderios
         XCODE_WORKSPACE: ios/LabRecorderiOS.xcworkspace
