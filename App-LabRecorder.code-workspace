@@ -10,7 +10,10 @@
             "path": "../lab-recorder-python"
         },
         {
-            "path": "../PhoLogToLabStreamingLayer"
+            "path": "../App-LabRecorder-iOS"
+        },
+        {
+            "path": "../../LSL_2026/liblsl"
         }
     ],
 	"settings": {
