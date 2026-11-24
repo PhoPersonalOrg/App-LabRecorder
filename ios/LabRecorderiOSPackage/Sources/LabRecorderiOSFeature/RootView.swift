@@ -7,7 +7,7 @@ public struct RootView: View {
 
     public var body: some View {
         TabView {
-            ContentView(activeRecordingPath: $activeRecordingPath)
+            SegmentedLayoutScreen(activeRecordingPath: $activeRecordingPath)
                 .tabItem {
                     Label("Record", systemImage: "record.circle")
                 }

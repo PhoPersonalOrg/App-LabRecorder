@@ -22,3 +22,5 @@ app.icns
 OptimizationProfiles/LabRecorder.profdata
 out.7z
 desktop.ini
+.env
+.cursor/mcp.json

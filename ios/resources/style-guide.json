@@ -1,0 +1,44 @@
+{
+  "screen": "Lab Recorder - Segmented Layout",
+  "projectId": "15853052594003468744",
+  "screenId": "568ec19f8f734677b29b6651beb5a498",
+  "colorMode": "dark",
+  "colors": {
+    "background": "#0C0D0E",
+    "card": "#1C1C1E",
+    "hudPanel": "#161618",
+    "well": "#121214",
+    "border": "#2C2C2E",
+    "borderSubtle": "rgba(255,255,255,0.05)",
+    "accent": "#007AFF",
+    "green": "#34C759",
+    "cyan": "#22D3EE",
+    "red": "#FF3B30",
+    "orange": "#FF9500",
+    "graySub": "#8E8E93",
+    "recordFrom": "#10B981",
+    "recordTo": "#16A34A"
+  },
+  "radii": {
+    "sm": 4,
+    "md": 8,
+    "lg": 12,
+    "xl": 16,
+    "pill": 999
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "bottomDockClearance": 128
+  },
+  "typography": {
+    "title": { "size": 16, "weight": "bold" },
+    "body": { "size": 14, "weight": "semibold" },
+    "caption": { "size": 11, "weight": "regular" },
+    "micro": { "size": 10, "weight": "medium" },
+    "section": { "size": 12, "weight": "semibold", "tracking": 0.08 }
+  }
+}
