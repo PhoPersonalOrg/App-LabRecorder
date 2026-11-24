@@ -34,10 +34,17 @@ public struct ContentView: View {
                 }
 
                 Section("Saving to") {
-                    TextField("Study root", text: $studyRoot)
+                    LabeledContent("Study root") {
+                        Text(studyRoot)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                    }
                     TextField("File name / Template", text: $pathTemplate)
-                    if !resolvedPath.isEmpty {
-                        Text(resolvedPath)
+                        .disabled(isRecording)
+                    let displayPath = isRecording && !recordingPath.isEmpty ? recordingPath : resolvedPath
+                    if !displayPath.isEmpty {
+                        Text(displayPath)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
