@@ -51,7 +51,8 @@ workflows:
         BUNDLE_ID: com.PhoHale.labrecorderios
         XCODE_WORKSPACE: ios/LabRecorderiOS.xcworkspace
         XCODE_SCHEME: LabRecorderiOS
-        # Set APP_STORE_APPLE_ID in the Codemagic UI (App Store Connect → App Information → Apple ID).
+        # App Store Connect → App Information → Apple ID
+        APP_STORE_APPLE_ID: "6838915604"
     triggering:
       events:
         - push
