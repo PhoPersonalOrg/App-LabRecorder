@@ -7,6 +7,8 @@ Official Lab Streaming Layer (liblsl) xcframework from [sccn/liblsl v1.17.7](htt
 
 Module maps were added under each slice’s `Modules/` so Swift can `import lsl`.
 Code signatures were removed so Xcode can process the modified local xcframework.
+The device slice (`ios-arm64`) Info.plist also needs `MinimumOSVersion` (and
+`CFBundleSupportedPlatforms`) or App Store Connect rejects the upload (90360 / 90533).
 
 To refresh from upstream:
 
