@@ -32,3 +32,45 @@ import Testing
         .replacingOccurrences(of: "%hostname", with: host)
     #expect(replaced == "LabRecorder_2026-01-02_03-04-05_test-host.xdf")
 }
+
+@Test func recordingFileStoreListsAndDeletesXDF() throws {
+    let fm = FileManager.default
+    let root = fm.temporaryDirectory.appendingPathComponent("lr_store_\(UUID().uuidString)", isDirectory: true)
+    try fm.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? fm.removeItem(at: root) }
+
+    let nested = root.appendingPathComponent("sub", isDirectory: true)
+    try fm.createDirectory(at: nested, withIntermediateDirectories: true)
+    let older = nested.appendingPathComponent("older.xdf")
+    let newer = root.appendingPathComponent("newer.xdf")
+    try Data("old".utf8).write(to: older)
+    try Data("new".utf8).write(to: newer)
+    try Data("skip".utf8).write(to: root.appendingPathComponent("notes.txt"))
+    try fm.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1_000)], ofItemAtPath: older.path)
+    try fm.setAttributes([.modificationDate: Date(timeIntervalSince1970: 2_000)], ofItemAtPath: newer.path)
+
+    let store = RecordingFileStore(rootURL: root)
+    let listed = try store.listXDFFiles()
+    #expect(listed.map(\.name) == ["newer.xdf", "older.xdf"])
+    #expect(listed[1].relativePath == "sub/older.xdf")
+
+    try store.delete(listed[0])
+    #expect(try store.listXDFFiles().map(\.name) == ["older.xdf"])
+}
+
+@Test func recordingFileStoreRefusesDeleteWhileRecording() throws {
+    let fm = FileManager.default
+    let root = fm.temporaryDirectory.appendingPathComponent("lr_store_busy_\(UUID().uuidString)", isDirectory: true)
+    try fm.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? fm.removeItem(at: root) }
+
+    let fileURL = root.appendingPathComponent("live.xdf")
+    try Data("xdf".utf8).write(to: fileURL)
+    let store = RecordingFileStore(rootURL: root)
+    let item = try store.listXDFFiles()[0]
+
+    #expect(throws: RecordingFileStoreError.fileInUse) {
+        try store.delete(item, activeRecordingPath: fileURL.path)
+    }
+    #expect(fm.fileExists(atPath: fileURL.path))
+}

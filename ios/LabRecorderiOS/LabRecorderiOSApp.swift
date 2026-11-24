@@ -5,7 +5,7 @@ import LabRecorderiOSFeature
 struct LabRecorderiOSApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }

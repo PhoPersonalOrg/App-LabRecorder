@@ -1,6 +1,8 @@
 import SwiftUI
 
 public struct ContentView: View {
+    @Binding private var activeRecordingPath: String
+
     @State private var streamItems: [StreamItem] = []
     @State private var isRefreshing = false
     @State private var studyRoot: String = ""
@@ -12,7 +14,9 @@ public struct ContentView: View {
     @State private var recordingPath: String = ""
     @State private var recordingStartTime: Date?
 
-    public init() {}
+    public init(activeRecordingPath: Binding<String> = .constant("")) {
+        _activeRecordingPath = activeRecordingPath
+    }
 
     public var body: some View {
         NavigationStack {
@@ -145,6 +149,7 @@ public struct ContentView: View {
         let engine = RecordingEngine(filePath: path, streamInfos: selected)
         recordingEngine = engine
         recordingPath = path
+        activeRecordingPath = path
         recordingStartTime = Date()
         recordingElapsedSeconds = 0
         recordingFileSizeKB = 0
@@ -155,12 +160,17 @@ public struct ContentView: View {
     }
 
     private func stopRecording() {
-        guard let engine = recordingEngine else { isRecording = false; return }
+        guard let engine = recordingEngine else {
+            isRecording = false
+            activeRecordingPath = ""
+            return
+        }
         Task {
             await engine.stop()
             await MainActor.run {
                 recordingEngine = nil
                 recordingPath = ""
+                activeRecordingPath = ""
                 recordingStartTime = nil
                 isRecording = false
             }

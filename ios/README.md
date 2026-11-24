@@ -71,6 +71,14 @@ LSL discovery needs local network / multicast. The app already sets
 `NSLocalNetworkUsageDescription` and the `com.apple.developer.networking.multicast` entitlement.
 On a physical device you must have Multicast Networking capability approved for the App ID.
 
+### Recordings and File Sharing
+Recordings are written under the app **Documents** folder. The app has two tabs:
+**Record** (stream selection / Start–Stop) and **Recordings** (list, share, delete `.xdf` files).
+
+Documents File Sharing is enabled (`UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace`):
+- **Files app**: On My iPhone/iPad → LabRecorderiOS
+- **Finder** (device connected): select the device → **Files** → LabRecorderiOS
+
 Quick smoke test with a host-side outlet (Homebrew liblsl):
 
 ```bash
