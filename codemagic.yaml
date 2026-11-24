@@ -25,7 +25,7 @@ workflows:
             -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
             -testPlan LabRecorderiOS \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -configuration Debug \
             -resultBundlePath "$CM_BUILD_DIR/LabRecorderiOS.xcresult" \
             CODE_SIGNING_ALLOWED=NO
